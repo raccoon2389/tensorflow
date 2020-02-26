@@ -5,9 +5,13 @@
 <body>
     <h1>맛집 추천</h1>
     <li>먹었던 메뉴</li>
-    
+    <input type="button" value='night mode' 
+    onclick="document.querySelector('body').style.backgroundColor='black';
+    document.querySelector('body').style.color='white';">
     <h2>오늘 먹은 메뉴 입력: <input type="text" placeholder="먹은 메뉴" required autofocus></h2>
     <form>
-        <input type="button" value='입력' onclick="alert('입력 되었습니다')">
+        <input type="button" value='입력' onclick=
+        "alert('입력 되었습니다');
+        location.href='result.html'">
     </form>
 </body>
