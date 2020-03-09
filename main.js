@@ -3,6 +3,13 @@ const fs = require('fs');
 const url = require('url');
 const qs = require('querystring');
 const util = require('util');
+const mysql = require('mysql');
+
+var connect = mysql.createConnection(
+    {host: 'localhost', user: 'root', password: '000000', database: 'food'}
+);
+
+connect.connect();
 
 const data_path = `./data/`;
 
@@ -25,8 +32,8 @@ var app = http.createServer(function (request, response) {
     <title>맛집 추천</title>
 </head>
 <body>
-    <h1>맛집 추천</h1>
-    <a href="/result"> 먹었던 메뉴 </a>
+    <h1><a href="/">맛집 추천</a></h1>
+    <a href="/result"> 먹었던 메뉴 </a> 
     <input type="button" value='night mode' 
     onclick="document.querySelector('body').style.backgroundColor='black';
     document.querySelector('body').style.color='white';">\n`;
@@ -54,32 +61,74 @@ var app = http.createServer(function (request, response) {
             var post = qs.parse(body);
             var user = post.user;
             var food_name = post.food_name;
-            readdir(data_path, 'utf8').then(result => {
-                var cur_user = result;
-            });
-            var user_path = data_path + user + `.txt`;
 
-            fs.exists(user_path, exists => {
-                if (exists) {
-                    fs.appendFile(user_path, `,` + food_name, err => {
-                        if (err) 
-                            throw err;
-                        
+            connect.query(`SELECT user.id AS user_id, user.name AS user_name, food.name AS food FROM user LEFT JOIN food ON user.id = food.user_id WHERE ? = user.name`,[user],(error,join_results)=>{
+                console.log(join_results[0].user_id);
+                if(error) {throw error}
+                else if (join_results[0] === undefined){
+                    connect.query(`INSERT INTO user(name) VALUE (?)`,[user],(error3, result) => {
+                        if (error2) {
+                            throw error2;
+                        }
+                        else{
+                        connect.query(`INSERT INTO food(name, user_id) VALUE (?,?)`,[food_name,result.insertId],(error3, dummy) => {
+                            if (error3) {
+                                throw error3;
+                            }else{
+                                response.writeHead(302, {Location: '/result'});
+                                response.end();
+                        }
+                    })
+                }
+            })
+                
+            } else{
+                connect.query(`INSERT INTO food(name, user_id) VALUE (?,?)`,[food_name,join_results[0].user_id],(error3, result) => {
+                    if (error3) {
+                        throw error3
+                    }else{
                         response.writeHead(302, {Location: '/result'});
                         response.end();
-                    })
+                };
+            })
+            }
+        })
+            /*connect.query(`SELECT * FROM user WHERE name = ?`, [user], (error2, yn) => {
+                if (error2) {
+                    throw error2;
+                } else if (yn[0] === undefined) {
+                    connect.query(
+                        `INSERT INTO user(name) VALUE (?) `,[user],(error3, result) => {
+                            if (error2) {
+                                throw error3
+                            };
+                            console.log(result);
+                            connect.query(`INSERT INTO food(name, user_id) VALUE (?,?) `, [
+                                food_name, result.insertId
+                            ], (error4, f_name) => {
+                                if (error4) 
+                                    throw error4;
+                                response.writeHead(302, {Location: '/result'});
+                                response.end();
+                            })
+                        }
+                    );
                 } else {
-                    fs.writeFile(user_path, food_name, 'utf8', function (err) {
-                        console.log('saved!')
-
+                    connect.query(`INSERT INTO food(name,user_id) VALUE (?,?) `, 
+                                    [food_name, yn[0].id], (error4, result) => {
+                        if (error4) {
+                            throw error4
+                        };
+                        console.log(result);
                         response.writeHead(302, {Location: '/result'});
                         response.end();
                     });
                 }
-            })
+
+            })*/
         })
     } else if (pathname === '/result') {
-        template +=`<style>
+        template += `<style>
         table {
           width: 100%;
           border: 1px solid #444444;
@@ -97,6 +146,26 @@ var app = http.createServer(function (request, response) {
         </thead>
         <tbody>`;
 
+        connect.query(`SELECT user.id AS user_id, user.name AS user_name, food.name AS food FROM user LEFT JOIN food ON user.id = food.user_id`,(error,join_results)=>{
+            var i = 0;
+            var k = 1;
+
+            while(join_results[i] != undefined){
+                template += `<tr>\n<td>`;
+                if(join_results[i].user_name != k){
+                    template += join_results[i].user_name;
+                    k = join_results[i].user_name ;
+                }
+
+                template += `</td><td>${join_results[i].food}</td>\n</tr>`;
+
+                i++;
+            }
+            template += `</tbody>\n</table></body>`
+            response.writeHead(200);
+            response.end(template);
+        })
+        /*
         readdir(data_path, 'utf8').then((f_dir) => {
             const func2 = async (f_dir) => {
                 for (var i = 0; i < f_dir.length; i++) {
@@ -126,12 +195,12 @@ var app = http.createServer(function (request, response) {
             }
             const func3 = async () => {
                 await func2(f_dir);
-                template+=`</tbody>\n</table></body>`
+                template += `</tbody>\n</table></body>`
                 response.writeHead(200);
                 response.end(template);
             }
             func3();
-        })
+        })*/
 
     } else {
         response.writeHead(404);
