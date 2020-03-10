@@ -4,6 +4,7 @@ const url = require('url');
 const qs = require('querystring');
 const util = require('util');
 const mysql = require('mysql');
+const weather = require('./weather.js');
 
 var connect = mysql.createConnection(
     {host: 'localhost', user: 'root', password: '000000', database: 'food'}
@@ -43,9 +44,10 @@ var app = http.createServer(function (request, response) {
         <form action="http://localhost:3000/food_process" method="POST">
             <p>유저명 :  <input type="text" name="user" placeholder="유저" required autofocus></p>
 
-            <p>오늘 먹은 메뉴 입력:  <input type="text" name="food_name" placeholder="먹은 메뉴" required autofocus></p>
+            <p>오늘 먹은 메뉴 입력:  <input type="text" name="food_name" placeholder="먹은 메뉴" required autofocus> 
+            만족도 : <input type="range" name = "good" min="1" max ="10" step ="0.1" value = "5" oninput="rangeout.value=this.value"/><output name="rangeout" for="range">5</output> </p>
             <input type="submit" value='입력' onclick=
-            "alert('입력 되었습니다');">
+            "alert('입력 되었습니다');"> 날씨는 자동으로 입력됩니다.
         </form>
         </body>`;
         response.writeHead(200);
@@ -61,38 +63,42 @@ var app = http.createServer(function (request, response) {
             var post = qs.parse(body);
             var user = post.user;
             var food_name = post.food_name;
-
-            connect.query(`SELECT user.id AS user_id, user.name AS user_name, food.name AS food FROM user LEFT JOIN food ON user.id = food.user_id WHERE ? = user.name`,[user],(error,join_results)=>{
-                console.log(join_results[0].user_id);
-                if(error) {throw error}
-                else if (join_results[0] === undefined){
-                    connect.query(`INSERT INTO user(name) VALUE (?)`,[user],(error3, result) => {
-                        if (error2) {
-                            throw error2;
-                        }
-                        else{
-                        connect.query(`INSERT INTO food(name, user_id) VALUE (?,?)`,[food_name,result.insertId],(error3, dummy) => {
-                            if (error3) {
-                                throw error3;
+            var good = post.good;
+            weather.now(temp=>{
+                connect.query(`SELECT user.id AS user_id, user.name AS user_name, food.name AS food FROM user LEFT JOIN food ON user.id = food.user_id WHERE ? = user.name`,[user],(error,join_results)=>{
+                    if(error) {throw error}
+                    else if (join_results[0] === undefined){
+                        connect.query(`INSERT INTO user(name) VALUE (?)`,[user],(error2, result) => {
+                            if (error2) {
+                                throw error2;
                             }else{
+                                connect.query(`INSERT INTO food(name, user_id,good,temperature, humidity,windspeed,cloudcover) VALUE (?,?,?,?,?,?,?)`,[food_name,result.insertId,good,temp.temperature, temp.humidity, temp.windSpeed, temp.cloudCover],(error3, result) => {
+                                    if (error3) {
+                                        throw error3;
+                            }
+                            else{
                                 response.writeHead(302, {Location: '/result'});
                                 response.end();
                         }
-                    })
-                }
-            })
-                
-            } else{
-                connect.query(`INSERT INTO food(name, user_id) VALUE (?,?)`,[food_name,join_results[0].user_id],(error3, result) => {
-                    if (error3) {
-                        throw error3
-                    }else{
-                        response.writeHead(302, {Location: '/result'});
-                        response.end();
-                };
-            })
+                    }
+                )
             }
         })
+
+                } else{
+                    connect.query(`INSERT INTO food(name, user_id,good,temperature, humidity,windspeed,cloudcover) VALUE (?,?,?,?,?,?,?)`,[food_name,join_results[0].user_id,good,temp.temperature, temp.humidity, temp.windSpeed, temp.cloudCover],(error3, result) => {
+                        if (error3) {
+                            throw error3
+                        }else{
+                            response.writeHead(302, {Location: '/result'});
+                            response.end();
+                    };
+                })
+                }
+            })
+            });
+
+            
             /*connect.query(`SELECT * FROM user WHERE name = ?`, [user], (error2, yn) => {
                 if (error2) {
                     throw error2;
@@ -141,23 +147,42 @@ var app = http.createServer(function (request, response) {
         <table>
         <thead>
           <tr>
-            <th>유저명</th><th>먹은 메뉴</th>
+            <th>유저명</th><th>먹은 메뉴</th><th>기온</th><th>습도</th><th>풍속</th><th>흐림도</th>
           </tr>
         </thead>
         <tbody>`;
 
-        connect.query(`SELECT user.id AS user_id, user.name AS user_name, food.name AS food FROM user LEFT JOIN food ON user.id = food.user_id`,(error,join_results)=>{
+        connect.query(`SELECT user.id AS user_id, user.name AS user_name, food.name AS food, temperature, humidity, windspeed, cloudcover FROM user LEFT JOIN food ON user.id = food.user_id`,(error,join_results)=>{
             var i = 0;
-            var k = 1;
+            var k = 2;
+            var asset = [join_results[i].food, join_results[i].temperature, join_results[i].humidity, join_results[i].windspeed, join_results[i].cloudcover]     
+            const template = async()=>{
+                
+            }
 
             while(join_results[i] != undefined){
+
                 template += `<tr>\n<td>`;
-                if(join_results[i].user_name != k){
+
+                if(join_results[i].user_id != k){
                     template += join_results[i].user_name;
-                    k = join_results[i].user_name ;
+                    k++ ;
                 }
 
-                template += `</td><td>${join_results[i].food}</td>\n</tr>`;
+                template += `</td>`;
+                
+                if(join_results[i].food != undefined){
+                for(var j=0;j<5;j++){
+                    template += `<td>${asset[j]}</td>`;
+                }
+                /*template += `<td>${join_results[i].food}</td> <td>${join_results[i].temperature}</td> <td>${join_results[i].humidity}</td> <td>${join_results[i].windspeed}</td> <td>${join_results[i].cloudcover}</td> `;*/
+            }else{
+                for(var j=0;j<5;j++){
+                    template +=`<td>없음</td>`
+                }
+            }
+
+                template += `\n</tr>`
 
                 i++;
             }

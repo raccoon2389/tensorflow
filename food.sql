@@ -1,13 +1,5 @@
-CREATE TABLE `user`(
-    `id` int(11) NOT NULL AUTO_INCREMENT,
-    `name` varchar(20) NOT NULL,
-    PRIMARY KEY(`id`)
-);
-
-CREATE TABLE `food`(
-    `id` int(11) NOT NULL AUTO_INCREMENT,
-    `name` varchar(20) NOT NULL,
-    `user_id` int(11) NOT NULL,
-    PRIMARY KEY(`id`),
-    FOREIGN KEY(`user_id`) REFERENCES `user`(`id`)
-);
+ALTER TABLE food ADD good int(11) NOT NULL ;
+ALTER TABLE food ADD temperature int(11) NOT NULL ;
+ALTER TABLE food ADD humidity int(11) NOT NULL ;
+ALTER TABLE food ADD windgust int(11) NOT NULL ;
+ALTER TABLE food ADD cloudcover int(11) NOT NULL ;
