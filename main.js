@@ -136,12 +136,22 @@ var app = http.createServer(function (request, response) {
     } else if (pathname === '/result') {
         template += `<style>
         table {
-          width: 100%;
-          border: 1px solid #444444;
-          border-collapse: collapse;
+            margin: 0 auto;
+            text-align: center;
+            border-collapse: collapse;
+            border: 1px solid #d4d4d4;
         }
-        th, td {
-          border: 1px solid #444444;
+        tr:nth-child(even) {
+            background: #d4d4d4;
+          }
+ 
+          th, td {
+            padding: 10px 30px;
+          }
+           
+          th {
+            border-bottom: 1px solid #d4d4d4;
+          }     
         }
       </style>
         <table>
@@ -155,11 +165,8 @@ var app = http.createServer(function (request, response) {
         connect.query(`SELECT user.id AS user_id, user.name AS user_name, food.name AS food, temperature, humidity, windspeed, cloudcover FROM user LEFT JOIN food ON user.id = food.user_id`,(error,join_results)=>{
             var i = 0;
             var k = 2;
-            var asset = [join_results[i].food, join_results[i].temperature, join_results[i].humidity, join_results[i].windspeed, join_results[i].cloudcover]     
-            const template = async()=>{
-                
-            }
-
+           /* var asset = [join_results[i].food, join_results[i].temperature, join_results[i].humidity, join_results[i].windspeed, join_results[i].cloudcover]*/     
+            
             while(join_results[i] != undefined){
 
                 template += `<tr>\n<td>`;
@@ -172,10 +179,11 @@ var app = http.createServer(function (request, response) {
                 template += `</td>`;
                 
                 if(join_results[i].food != undefined){
-                for(var j=0;j<5;j++){
+                    /*for(var j=0;j<5;j++){
                     template += `<td>${asset[j]}</td>`;
-                }
-                /*template += `<td>${join_results[i].food}</td> <td>${join_results[i].temperature}</td> <td>${join_results[i].humidity}</td> <td>${join_results[i].windspeed}</td> <td>${join_results[i].cloudcover}</td> `;*/
+                }*/
+                template += `<td>${join_results[i].food}</td> <td>${join_results[i].temperature}</td> <td>${join_results[i].humidity}</td> <td>${join_results[i].windspeed}</td> <td>${join_results[i].cloudcover}</td> `;
+               
             }else{
                 for(var j=0;j<5;j++){
                     template +=`<td>없음</td>`
